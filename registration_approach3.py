@@ -6,15 +6,16 @@ from scipy.sparse import csr_matrix
 #=============================================
 
 
-def registration_a3(u,v,x,y,I,c1,c2,c3,c4,mask,Acomb,time_cor,folder_results,ks):
-    # This function perform the automatic registration and return the mappings.
+def registration_a3(u,v,x,y,I,c1,c2,c3,ct,mask,Acomb,time_cor,folder_results,ks):
+    # This function performs the automatic registration and return the mappings.
     # It takes as input:
     # - u, the rainfall field to be corrected.
     # - v, the target rainfall field (assumed to be the truth). The fields u and v need to have the same dimensions.
     # - the corresponding coordinates, x and y being the longitude and latitude respectively.
     # - the number of steps I (corresponding to the number of morphing grid). I has to be an integer.
-    # - the regulation coefficients c1, c2 and c3 (floats).
-    # - the mask. It need to have the same dimension as the fields u and v. It is used to mask the area with no data (in case of irregularly spaced observations.
+    # - the regulation coefficients c1, c2, c3 and ct (floats).
+    # - the mask. It needs to have the same dimension as the fields u and v. It is used to mask the area with no data (in case of irregularly spaced observations.
+    # - Acomb is a matrix pairing two by two the time steps and time_corr the corresponding correlation. Together, they define the influence function.
     # - folder_results is a folder, the mappings will be saved in this folder for future use.
     # - ks is added to the file names containing the mappings (used for the LOOV experiment).
 
@@ -131,7 +132,7 @@ def registration_a3(u,v,x,y,I,c1,c2,c3,c4,mask,Acomb,time_cor,folder_results,ks)
 
         while (crit1>eps1 or crit2>eps2) :
             # Optimization (with derivative)
-            tTo1 = op.minimize(Jp_Acomb, grid, args=(b, us, vs, y, x, i, c1, c2, c3,c4, dxdT, dydT, Ax, At, mask,Acomb,time_cor), jac=True,
+            tTo1 = op.minimize(Jp_a3, grid, args=(b, us, vs, y, x, i, c1, c2, c3,ct, dxdT, dydT, Ax, At, mask,Acomb,time_cor), jac=True,
                                method='L-BFGS-B', bounds=bnds, options={'maxiter': 10000, 'maxfun': 100000})
             print('Optimization successful: {}'.format(tTo1.success))  # did the minimization succeed?
 
@@ -151,7 +152,7 @@ def registration_a3(u,v,x,y,I,c1,c2,c3,c4,mask,Acomb,time_cor,folder_results,ks)
                 crit2 = 0
             else:
                 crit1 = np.sqrt(np.sum((grid-tTo1.x)**2))
-                crit2 = np.abs(Jp_Acomb(grid, b, us, vs, y, x, i,c1,c2,c3,c4, dxdT, dydT, Ax, At,mask)[0] - Jp_Acomb(tTo1.x, b, us, vs, y, x, i,c1,c2,c3,c4, dxdT, dydT, Ax, At,mask)[0])
+                crit2 = np.abs(Jp_a3(grid, b, us, vs, y, x, i,c1,c2,c3,ct, dxdT, dydT, Ax, At,mask)[0] - Jp_a3(tTo1.x, b, us, vs, y, x, i,c1,c2,c3,ct, dxdT, dydT, Ax, At,mask)[0])
 
             # Update
             grid = tTo1.x

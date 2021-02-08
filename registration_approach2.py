@@ -6,14 +6,14 @@ from scipy.sparse import csr_matrix
 #=============================================
 
 def registration_a2(u,v,x,y,I,c1,c2,c3,mask,folder_results,ks):
-    # This function perform the automatic registration and return the mappings.
+    # This function performs the automatic registration and return the mappings.
     # It takes as input:
     # - u, the rainfall field to be corrected.
     # - v, the target rainfall field (assumed to be the truth). The fields u and v need to have the same dimensions.
     # - the corresponding coordinates, x and y being the longitude and latitude respectively.
     # - the number of steps I (corresponding to the number of morphing grid). I has to be an integer.
     # - the regulation coefficients c1, c2 and c3 (floats).
-    # - the mask. It need to have the same dimension as the fields u and v. It is used to mask the area with no data (in case of irregularly spaced observations.
+    # - the mask. It needs to have the same dimension as the fields u and v. It is used to mask the area with no data (in case of irregularly spaced observations.
     # - folder_results is a folder, the mappings will be saved in this folder for future use.
     # - ks is added to the file names containing the mappings (used for the LOOV experiment).
 

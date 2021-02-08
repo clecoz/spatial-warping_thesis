@@ -2,42 +2,28 @@ import numpy as np
 from scipy import interpolate
 from interpolation import interpn_linear
 
-import matplotlib.pyplot as plt
-################################################################################
+
+########################################################################################################################
 #
 # Cost function and related functions
 #
-###############################################################################
+########################################################################################################################
 
-# ======================================================================================================================
+
 # Smoothing function
-def smooth2(v,t,x,i):
-    # Return smoothed signal from morphing2d
-    v1 = np.zeros(v.shape)
-    nx,nt = v.shape
-    alpha = 0.05 / (2 ** (i * 2) + 1)
-    for j in np.arange(0, nt):
-        j = int(j)
-        tloc = t[j]
-        kernel_t = np.exp(-((t - tloc) / nt) ** 2 / alpha) / sum(np.exp(-((t - t[int((nt - 1) / 2)]) / nt) ** 2 / alpha))
-        for k in np.arange(0, nx):
-            k = int(k)
-            xloc = x[k]
-            kernel_x = np.exp(-((x - xloc) / nx) ** 2 / alpha) / sum(np.exp(-((x - x[int((nx - 1) / 2)]) / nx) ** 2 / alpha))
-            v1[k,j] = np.dot(np.dot(v,kernel_t),kernel_x)
-    return v1
-
-
 def smooth(v,y,x,i):
-    # Return smoothed signal
+    # This function returns the smoothed signal.
+    # It takes as inputs:
+    # - the input signal v (2D field) to be smoothed
+    # - the corresponding spatial coordinates x and y
+    # - the step number i which defines the level of smoothing
+
     v1 = np.zeros(v.shape)
     if len(v.shape) == 2:
         nx, ny = v.shape
-        nt = 1
     elif len(v.shape) == 3:
         nt, nx, ny = v.shape
     alpha = 0.05 / (2 ** (i*2) + 1)
-    #alpha = 0.01 / (2 ** (i) + 1)
     for j in np.arange(0, ny):
         j = int(j)
         tloc = y[j]
@@ -54,26 +40,16 @@ def smooth(v,y,x,i):
     return v1
 
 
-# ======================================================================================================================
+#-----------------------------------------------------------------------------------
 # Warping functions
-def mapped2(u,y,x,yyT,xxT,i):
-    # Return the warped signal from morphing2d
-    ny = len(y)
-    nx = len(x)
-    yc = np.linspace(0, ny - 1, (2 ** i + 1), dtype=int)
-    xc = np.linspace(0, nx - 1, (2 ** i + 1), dtype=int)
-    xx, yy = np.meshgrid(x, y, indexing='ij')
-
-    # Transform coordinate
-    Tt = interpolate.interpn((x[xc], y[yc]), yyT, np.array([xx.reshape(-1), yy.reshape(-1)]).T, method='linear')
-    Tx = interpolate.interpn((x[xc], y[yc]), xxT, np.array([xx.reshape(-1), yy.reshape(-1)]).T, method='linear')
-
-    # Interpolated function
-    uT = interpolate.interpn((x, y), u, np.array([Tx, Tt]).T, method='linear',bounds_error=False, fill_value=None)  # ,fill_value=1000)
-    return uT.reshape(nx,ny)
-
 def mapped(u,y,x,yyT,xxT,i):
-    # Return the warped signal
+    # This function returns the warped signal on the pixel grid.
+    # It takes as inputs:
+    # - the input signal u (2D filed)
+    # - the corresponding spatial coordinates x and y
+    # - the two composant of the mapping yyT and xxT
+    # - the corresponding step number i (which is linked to the resolution of the mapping)
+
     ny = len(y)
     nx = len(x)
     yc = np.linspace(0, ny - 1, (2 ** i + 1), dtype=int)
@@ -103,8 +79,16 @@ def mapped(u,y,x,yyT,xxT,i):
 
     return uT
 
+
 def mapped_TAHMO(u,y,x,yyT,xxT,lat_sta,lon_sta,i):
-    # Return the values of the warped signal at given coordinates (lat_sta,lon_sta)
+    # This function returns the warped signalat given coordinates (lat_sta,lon_sta).
+    # It takes as inputs:
+    # - the input signal u (2D filed)
+    # - the corresponding spatial coordinates x and y
+    # - the two composant of the mapping yyT and xxT
+    # - the coordinates at which to compute the warped signal lat_sta and lon_sta (array)
+    # - the step number i (which is linked to the resolution of the mapping)
+
     ny = len(y)
     nx = len(x)
     yc = np.linspace(0, ny - 1, (2 ** i + 1), dtype=int)
@@ -116,7 +100,6 @@ def mapped_TAHMO(u,y,x,yyT,xxT,lat_sta,lon_sta,i):
         Tx = interpolate.interpn((x[xc], y[yc]), xxT, np.array([lon_sta, lat_sta]).T, method='linear',bounds_error=False, fill_value=None)
 
         # Interpolated function
-        #uT = interpolate.interpn((x, y), u, np.array([Tx, Tt]).T, method='linear',bounds_error=False, fill_value=None)  # ,fill_value=1000)
         if len(u.shape) == 2:
             uT = interpolate.interpn((x, y), u, np.array([Tx, Tt]).T, method='linear',bounds_error=False, fill_value=None).reshape(nx,ny)  # ,fill_value=1000)
         elif len(u.shape) == 3:
@@ -137,8 +120,13 @@ def mapped_TAHMO(u,y,x,yyT,xxT,lat_sta,lon_sta,i):
 
 
 def mapped_weight(u,y,x,yyT,xxT,i):
-    # Same as 'mapped' function, but also return weight from interpolation
-    # Used in the computation of the derivative of the cost function
+    # This function returns the warped signal and the corresponding interpolation weight (used in the computation of the derivative of the cost function).
+    # It takes as inputs:
+    # - the input signal u (time series)
+    # - the corresponding time coordinate t
+    # - the mapping tT
+    # - the corresponding step number i (which is linked to the resolution of the mapping)
+
     ny = len(y)
     nx = len(x)
     nt = u.shape[0]
@@ -184,7 +172,8 @@ def mapped_weight(u,y,x,yyT,xxT,i):
     return uT, uT_x, uT_y
 
 
-# ======================================================================================================================
+#-----------------------------------------------------------------------------------
+# Derivative function (used in cost_function)
 
 def dXdT(t, x, i):
     nt = len(t)
@@ -244,19 +233,19 @@ def dXdT(t, x, i):
     return dxdT2, dtdT2
 
 
-# ======================================================================================================================
-# Constraints functions
+#-----------------------------------------------------------------------------------
+# Constraint functions
 
 def constr1(grid,i):
-    #print(grid.shape)
+    # Check if the first constraint is respected
     mi = 2 ** i + 1
-    #print(grid[0:(2 ** i + 1) ** 2 * 2])
     xxT = grid[0:(2 ** i + 1) ** 2].reshape((2**i+1,2**i+1))
     ttT = grid[(2 ** i + 1) ** 2:(2 ** i + 1) ** 2 * 2].reshape((2**i+1,2**i+1))
     c1 = (xxT[1:mi, 0:mi - 1] - xxT[0:mi - 1, 0:mi - 1]) * (ttT[1:mi, 1:mi] - ttT[0:mi - 1, 0:mi - 1]) - (ttT[1:mi,0:mi - 1] - ttT[0:mi - 1,0:mi - 1]) * (xxT[1:mi,1:mi] - xxT[0:mi - 1,0:mi - 1])
     return c1.reshape(-1)
 
 def constr2(grid,i):
+    # Check if the second constraint is respected
     mi = 2 ** i + 1
     xxT = grid[0:(2 ** i + 1) ** 2].reshape((2 ** i + 1, 2 ** i + 1))
     ttT = grid[(2 ** i + 1) ** 2:(2 ** i + 1) ** 2 * 2].reshape((2 ** i + 1, 2 ** i + 1))
@@ -264,6 +253,7 @@ def constr2(grid,i):
     return c2.reshape(-1)
 
 def constr3(grid,i):
+    # Check if the third constraint is respected
     mi = 2 ** i + 1
     xxT = grid[0:(2 ** i + 1) ** 2].reshape((2 ** i + 1, 2 ** i + 1))
     ttT = grid[(2 ** i + 1) ** 2:(2 ** i + 1) ** 2 * 2].reshape((2 ** i + 1, 2 ** i + 1))
@@ -271,6 +261,7 @@ def constr3(grid,i):
     return c3.reshape(-1)
 
 def constr4(grid,i):
+    # Check if the foutth constraint is respected
     mi = 2 ** i + 1
     xxT = grid[0:(2 ** i + 1) ** 2].reshape((2 ** i + 1, 2 ** i + 1))
     ttT = grid[(2 ** i + 1) ** 2:(2 ** i + 1) ** 2 * 2].reshape((2 ** i + 1, 2 ** i + 1))
@@ -278,7 +269,7 @@ def constr4(grid,i):
     return c4.reshape(-1)
 
 
-#===========================================================
+#-----------------------------------------------------------------------------------
 # Derivative of the constraint functions
 
 def dc1dX(grid,i):
@@ -402,11 +393,20 @@ def dc4dX(grid,i):
     return Jc4
 
 
-# ======================================================================================================================
+#-----------------------------------------------------------------------------------
 # Cost function
 
 def Jp(grid,b,u,v,y,x,i,c1,c2,c3,dxdT,dydT,Ax,Ay,mask=None,nt0=None):
-    # Penalized cost function Jp with derivative
+    # This function returns the value and the derivative of the cost function for the approaches A1 and A2.
+    # It takes as input:
+    # - the two components of the mapping stored in gridr.
+    # - the smoothed inputs us and vs.
+    # - the spatial coordinates x and y.
+    # - the step i (defining the smoothing and the resolution of the mapping).
+    # - the regulation coefficients c1, c2, c3 and ct.
+    # - the mask. It needs to have the same dimension as the fields u and v. It is used to mask the area with no data (in case of irregularly spaced observations.
+    # - For approach A2: nt0 is the number of time steps with rainfall.
+
     mi = 2**i + 1
 
     ny = len(y)
@@ -445,10 +445,9 @@ def Jp(grid,b,u,v,y,x,i,c1,c2,c3,dxdT,dydT,Ax,Ay,mask=None,nt0=None):
     # Cost
     if mask is None:
         err = (v1 - u1).reshape(-1)
-        #Jo = np.sqrt(np.sum((v1 - u1) ** 2))
         Jo = np.sqrt(np.sum((v1 - u1) ** 2) ) / np.sqrt(nt0)
     else:
-        err = (mask*(v1 - u1)).reshape(-1) #* nt#/ np.sqrt(nt)
+        err = (mask*(v1 - u1)).reshape(-1)
         Jo = np.sqrt(np.sum(mask * (v1 - u1) ** 2)) / np.sqrt(nt0)
 
 
@@ -465,15 +464,6 @@ def Jp(grid,b,u,v,y,x,i,c1,c2,c3,dxdT,dydT,Ax,Ay,mask=None,nt0=None):
     dx = round(x[1]-x[0],2)
     dy = round(y[1]-y[0],2)
 
-    #print(v1.shape)
-    #print(err.shape)
-    #print(u_y.shape)
-    #print((err * (u_y/dy)).reshape((nt,nx*ny)).shape)
-    #print(dydT.shape)
-    #if mask is None:
-    #    jac = - (np.sum((v1 - u1) ** 2) ** (-1 / 2)) * ((((v1 - u1)).reshape(-1) * (u_y/dy) @ dydT) + (((v1 - u1)).reshape(-1) * (u_x/dx) @ dxdT))
-    #else:
-    #    jac = - (np.sum(mask*(v1 - u1) ** 2) ** (-1 / 2)) * (((mask*(v1 - u1)).reshape(-1) * (u_y / dy) @ dydT) + ((mask*(v1 - u1)).reshape(-1) * (u_x / dx) @ dxdT))
     if (err @ err) == 0:
         jac = np.zeros(len(grid))
     else:
@@ -513,83 +503,25 @@ def Jp(grid,b,u,v,y,x,i,c1,c2,c3,dxdT,dydT,Ax,Ay,mask=None,nt0=None):
     return cost , jac
 
 
-# ======================================================================================================================
-# Cost function + terms
 
-def Jp_term(grid,b,u,v,y,x,i,c1,c2,c3,Ax,Ay,mask=None):
-    # Penalized cost function Jp with derivative
+
+def Jp_a3(gridr, b, us, vs, y, x, i, c1, c2, c3, ct, dxdT, dydT, Ax, Ay, mask=None, Acomb=None, time_corr=None):
+    # This function returns the value and the derivative of the cost function for the approach A3.
+    # It takes as input:
+    # - the two components of the mapping stored in gridr.
+    # - the smoothed inputs us and vs.
+    # - the spatial coordinates x and y.
+    # - the step i (defining the smoothing and the resolution of the mapping).
+    # - the regulation coefficients c1, c2, c3 and ct.
+    # - the mask. It need to have the same dimension as the fields u and v. It is used to mask the area with no data (in case of irregularly spaced observations.
+    # - Acomb is a matrix pairing two by two the time steps and time_corr the corresponding correlation.
+
+
     mi = 2**i + 1
-
-    ny = len(y)
-    nx = len(x)
-    yc = np.linspace(0, ny - 1, (2 ** i + 1), dtype=int)
-    xc = np.linspace(0, nx - 1, (2 ** i + 1), dtype=int)
-    xxc, yyc = np.meshgrid(x[xc], y[yc], indexing='ij')
-    yyT = grid[(mi)**2:(mi)**2*2].reshape((mi,mi))
-    xxT = grid[0:(mi)**2].reshape((mi, mi))
-    b1 = b[0 : (mi-1)**2]
-    b2 = b[(mi-1)**2 : 2*(mi - 1)**2]
-    b3 = b[2*(mi-1)**2 : 3*(mi - 1)**2]
-    b4 = b[3*(mi-1)**2 :  4*(mi - 1)**2]
-
-    v1 = v
-    u1 = mapped(u, y, x, yyT, xxT, i)
-
-    ydif = (yyT-yyc).reshape(-1)
-    xdif = (xxT-xxc).reshape(-1)
-
-    dT = np.zeros(4 * mi ** 2)
-    dT[0:mi ** 2] = Ax @ xdif
-    dT[mi ** 2:2 * mi ** 2] = Ay @ xdif
-    dT[2 * mi ** 2:3 * mi ** 2] = Ax @ ydif
-    dT[3 * mi ** 2:4 * mi ** 2] = Ay @ ydif
-
-    divT = Ax @ xdif + Ay @ ydif
-
-    # Cost
-    if mask is None:
-        Jo = np.sqrt(np.sum((v1 - u1) ** 2))
-    else:
-        Jo = np.sqrt(np.sum(mask * (v1 - u1) ** 2))
-
-    Jb = c1 /mi * np.sqrt(np.dot(ydif, ydif) + np.dot(xdif.T, xdif)) \
-               + c2 /mi * np.sqrt(np.dot(dT.T, dT)) \
-               + c3 / mi * np.sqrt(np.dot(divT.T, divT))
-    cost = Jo + Jb + (np.dot(b1 * (constr1(grid, i) < 0), constr1(grid, i) ** 2) + np.dot(b2 * (constr2(grid, i) < 0),constr2(grid, i) ** 2)
-                    + np.dot(b3 * (constr3(grid, i) < 0), constr3(grid, i) ** 2) + np.dot(b4 * (constr4(grid, i) < 0),constr4(grid, i) ** 2))
-
-
-    # Terms
-    reg1 = 1 / (mi ) * np.sqrt(np.dot(ydif, ydif) + np.dot(xdif.T, xdif))
-    reg2 = 1 / (mi ) * np.sqrt(np.dot(dT.T, dT))
-    reg3 = 1 / (mi ) * np.sqrt(np.dot(divT.T, divT))
-    pen = (np.dot(b1 * (constr1(grid, i) < 0), constr1(grid, i) ** 2) + np.dot(b2 * (constr2(grid, i) < 0),constr2(grid, i) ** 2)
-                    + np.dot(b3 * (constr3(grid, i) < 0), constr3(grid, i) ** 2) + np.dot(b4 * (constr4(grid, i) < 0),constr4(grid, i) ** 2))
-
-    #print(constr1(grid, i))
-    #print(np.exp(constr1(grid, i)))
-    #print(np.dot(b1 * (constr1(grid, i) < 0), np.exp(constr1(grid, i))))
-    #pen = (np.dot(b1 * (constr1(grid, i) < 0), np.exp(constr1(grid, i))) + np.dot(b2 * (constr2(grid, i) < 0),
-    #                                                                              np.exp(constr2(grid, i)))
-    #       + np.dot(b3 * (constr3(grid, i) < 0), np.exp(constr3(grid, i))) + np.dot(b4 * (constr4(grid, i) < 0),
-    #                                                                                np.exp(constr4(grid, i))))
-
-
-    return cost, Jo, reg1, reg2, reg3, pen
-
-
-
-#=============================================
-
-#=========================================================================================
-
-def Jp_Acomb(gridr, b, u, v, y, x, i, c1, c2, c3, c4, dxdT, dydT, Ax, Ay, mask=None, Acomb=None, time_corr=None):
-    # Penalized cost function Jp with derivative with Acomb
-    mi = 2**i + 1
-    if len(u.shape) == 2:
+    if len(us.shape) == 2:
         nt=1
-    elif len(u.shape) == 3:
-        nt = u.shape[0]
+    elif len(us.shape) == 3:
+        nt = us.shape[0]
 
     ny = len(y)
     nx = len(x)
@@ -599,8 +531,8 @@ def Jp_Acomb(gridr, b, u, v, y, x, i, c1, c2, c3, c4, dxdT, dydT, Ax, Ay, mask=N
     yyT = grid[(mi)**2:(mi)**2*2,:].reshape((mi,mi,nt))
     xxT = grid[0:(mi)**2,:].reshape((mi, mi,nt))
 
-    v1 = v
-    u1 = mapped(u, y, x, yyT, xxT, i)
+    v1 = vs
+    u1 = mapped(us, y, x, yyT, xxT, i)
 
     yc = np.linspace(0, ny - 1, (2 ** i + 1), dtype=int)
     xc = np.linspace(0, nx - 1, (2 ** i + 1), dtype=int)
@@ -656,7 +588,7 @@ def Jp_Acomb(gridr, b, u, v, y, x, i, c1, c2, c3, c4, dxdT, dydT, Ax, Ay, mask=N
                + np.dot(b * (Cons3r < 0), Cons3r ** 2) + np.dot(b * (Cons4r < 0), Cons4r ** 2))
     #print(Jc)
 
-    if (Acomb is not None) and (c4 != 0):
+    if (Acomb is not None) and (ct != 0):
         ydif_s = Acomb @ ydif.T
         xdif_s = Acomb @xdif.T
         #C = np.diag(np.sqrt(time_corr))
@@ -665,14 +597,14 @@ def Jp_Acomb(gridr, b, u, v, y, x, i, c1, c2, c3, c4, dxdT, dydT, Ax, Ay, mask=N
         # change end
         ydif_sc = (C @ ydif_s).reshape(-1)
         xdif_sc = (C @ xdif_s).reshape(-1)
-        Js = c4  / mi* np.sqrt(ydif_sc.T @ ydif_sc + xdif_sc.T @ xdif_sc)
+        Js = ct  / mi* np.sqrt(ydif_sc.T @ ydif_sc + xdif_sc.T @ xdif_sc)
     else:
         Js = 0
 
     cost = Jo + Jb + Jc + Js
 
     # Derivative
-    _, u_x, u_y = mapped_weight(u, y, x, yyT, xxT, i)
+    _, u_x, u_y = mapped_weight(us, y, x, yyT, xxT, i)
     dx = round(x[1]-x[0],2)
     dy = round(y[1]-y[0],2)
 
