@@ -1,7 +1,7 @@
 # spatial-warping_thesis
 
 This project permits to reproduce the results presented in Chapter 3 of the PhD thesis "Straight as rain, Africa's rainfall measured, modeled, mapped and analyzed" (available at https://repository.tudelft.nl/). 
-The goal is to gauge-adjust rainfall estimate with respect to the position of the rain events by using a spatial warping method.
+The goal is to gauge-adjust rainfall estimates with respect to the position of the rain events by using a spatial warping method.
 
 ## Requirement
 The python scripts use the following libraries:
