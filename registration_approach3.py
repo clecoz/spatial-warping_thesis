@@ -132,7 +132,7 @@ def registration_a3(u,v,x,y,I,c1,c2,c3,ct,mask,Acomb,time_cor,folder_results,ks)
 
         while (crit1>eps1 or crit2>eps2) :
             # Optimization (with derivative)
-            tTo1 = op.minimize(Jp_a3, grid, args=(b, us, vs, y, x, i, c1, c2, c3,ct, dxdT, dydT, Ax, At, mask,Acomb,time_cor), jac=True,
+            tTo1 = op.minimize(Jp_a3, grid, args=(b, us, vs, y, x, i, c1, c2, c3, ct, dxdT, dydT, Ax, At, mask,Acomb,time_cor), jac=True,
                                method='L-BFGS-B', bounds=bnds, options={'maxiter': 10000, 'maxfun': 100000})
             print('Optimization successful: {}'.format(tTo1.success))  # did the minimization succeed?
 

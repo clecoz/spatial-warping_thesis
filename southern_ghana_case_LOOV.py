@@ -5,10 +5,9 @@ from pykrige import OrdinaryKriging
 import pandas as pd
 import numpy as np
 import os
-import matplotlib.colors as cls
-from matplotlib.colors import ListedColormap
+import matplotlib.pyplot as plt
 from itertools import combinations
-from mpl_toolkits.basemap import Basemap
+
 
 #=======================================================================================================================
 # Southern Ghana case - "LOOV" experiment
@@ -32,7 +31,7 @@ threshold = 0.1   # in mm/h, used to compute the position and timing error
 # Choose registration parameter
 
 # Choose registration approach
-reg = "a3"          # Possible choice: "a1", "a2" and "a3"
+reg = "a2"          # Possible choice: "a1", "a2" and "a3"
 
 # Choose regulation coefficients
 c1 = 0.1
@@ -204,7 +203,7 @@ if reg == "a1" or reg == "a3":
 elif reg == "a2":
     for ks in range(ns):
         u_warped_loov[:, ks] = np.squeeze(
-            mapped_TAHMO(u_o, y, x, Ty_loov[:, :, :, ks], Tx_loov[:, :, :, ks], lat_v, lon_v, I))[:, ks]
+            mapped_TAHMO(u_o, y, x, Ty_loov[:, :, ks], Tx_loov[:, :, ks], lat_v, lon_v, I))[:, ks]
 else:
     print("Error (wrong ""reg""): this approach does not exist.")
 

@@ -5,6 +5,7 @@ from pykrige import OrdinaryKriging
 import pandas as pd
 import numpy as np
 import os
+import matplotlib.pyplot as plt
 import matplotlib.colors as cls
 from matplotlib.colors import ListedColormap
 from itertools import combinations

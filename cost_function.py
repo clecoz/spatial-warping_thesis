@@ -516,7 +516,6 @@ def Jp_a3(gridr, b, us, vs, y, x, i, c1, c2, c3, ct, dxdT, dydT, Ax, Ay, mask=No
     # - the mask. It need to have the same dimension as the fields u and v. It is used to mask the area with no data (in case of irregularly spaced observations.
     # - Acomb is a matrix pairing two by two the time steps and time_corr the corresponding correlation.
 
-
     mi = 2**i + 1
     if len(us.shape) == 2:
         nt=1
@@ -561,9 +560,7 @@ def Jp_a3(gridr, b, us, vs, y, x, i, c1, c2, c3, ct, dxdT, dydT, Ax, Ay, mask=No
         Jo = np.sqrt(np.sum((v1 - u1) ** 2))
     else:
         err = (mask*(v1 - u1)).reshape(-1)
-        Jo = np.sqrt((err @ err)) #Jo = np.sqrt(np.sum(mask * (v1 - u1) ** 2))
-
-
+        Jo = np.sqrt((err @ err))
 
     Jb = c1 /(mi) * np.sqrt(np.dot(ydifr, ydifr) + np.dot(xdifr.T, xdifr)) \
                + c2 /(mi) * np.sqrt(np.dot(dTr.T, dTr)) \
@@ -582,19 +579,13 @@ def Jp_a3(gridr, b, us, vs, y, x, i, c1, c2, c3, ct, dxdT, dydT, Ax, Ay, mask=No
     Cons2r = Cons2.reshape(-1)
     Cons3r = Cons3.reshape(-1)
     Cons4r = Cons4.reshape(-1)
-
-
     Jc = (np.dot(b * (Cons1r < 0), Cons1r ** 2) + np.dot(b * (Cons2r < 0),Cons2r ** 2)
                + np.dot(b * (Cons3r < 0), Cons3r ** 2) + np.dot(b * (Cons4r < 0), Cons4r ** 2))
-    #print(Jc)
 
     if (Acomb is not None) and (ct != 0):
         ydif_s = Acomb @ ydif.T
         xdif_s = Acomb @xdif.T
-        #C = np.diag(np.sqrt(time_corr))
-        # change begin
         C = np.diag(time_corr)
-        # change end
         ydif_sc = (C @ ydif_s).reshape(-1)
         xdif_sc = (C @ xdif_s).reshape(-1)
         Js = ct  / mi* np.sqrt(ydif_sc.T @ ydif_sc + xdif_sc.T @ xdif_sc)
@@ -602,6 +593,7 @@ def Jp_a3(gridr, b, us, vs, y, x, i, c1, c2, c3, ct, dxdT, dydT, Ax, Ay, mask=No
         Js = 0
 
     cost = Jo + Jb + Jc + Js
+
 
     # Derivative
     _, u_x, u_y = mapped_weight(us, y, x, yyT, xxT, i)
@@ -612,12 +604,6 @@ def Jp_a3(gridr, b, us, vs, y, x, i, c1, c2, c3, ct, dxdT, dydT, Ax, Ay, mask=No
         jac = np.zeros(grid.shape)
     else:
         jac = - ((err @ err) ** (-1 / 2))  * (((err * (u_y/dy)).reshape((nt,nx*ny)) @ dydT) + ((err * (u_x/dx)).reshape((nt,nx*ny)) @ dxdT)).T.reshape(-1)
-
-        #jac = np.zeros(grid.shape)
-        #for kt in range(nt):
-        #jac = - ((np.sum((v1 - u1) ** 2)) ** (-1 / 2)) * ((((v1 - u1)).reshape(-1) * (u_y / dy) @ dydT) + (((v1 - u1)).reshape(-1) * (u_x / dx) @ dxdT))
-
-
 
     if (np.dot(ydifr.T, ydifr) + np.dot(xdifr.T, xdifr)) == 0 or c1 == 0:
         jac = jac
@@ -646,23 +632,19 @@ def Jp_a3(gridr, b, us, vs, y, x, i, c1, c2, c3, ct, dxdT, dydT, Ax, Ay, mask=No
         jac5 = jac5.reshape(-1)
         jac = jac + c3 / (mi)  * (np.dot(divTr.T,divTr) ** (-1 / 2)) * jac5
 
-    if (Acomb is not None) and (c4!=0):
+    if (Acomb is not None) and (ct!=0):
         if ((xdif_sc.T @ xdif_sc)==0 and  (ydif_sc.T @ ydif_sc)==0):
             jac = jac
         else:
-            #change begin
             C = np.diag(time_corr)
-            #change end
             temp = np.zeros(grid.shape)
             B = Acomb.T @ C.T @ C @ Acomb
             temp[0:(mi) ** 2, :] = xdif @ B
             temp[(mi) ** 2:(mi) ** 2 * 2, :] = ydif @ B
-            jac6 = c4 /mi * (ydif_sc.T @ ydif_sc + xdif_sc.T @ xdif_sc) ** (-1 / 2) * temp
+            jac6 = ct /mi * (ydif_sc.T @ ydif_sc + xdif_sc.T @ xdif_sc) ** (-1 / 2) * temp
             jac = jac + jac6.reshape(-1)
     else:
         jac = jac
-
-
 
     DCons1 = np.zeros((2 * mi ** 2, nt))
     DCons2 = np.zeros((2 * mi ** 2, nt))
@@ -673,7 +655,6 @@ def Jp_a3(gridr, b, us, vs, y, x, i, c1, c2, c3, ct, dxdT, dydT, Ax, Ay, mask=No
         DCons2[:, kt] =  2 * (b * (Cons2 < 0) * Cons2)[:,kt] @  dc2dX(grid[:, kt], i)
         DCons3[:, kt] =  2 * (b * (Cons3 < 0) * Cons3)[:,kt] @  dc3dX(grid[:, kt], i)
         DCons4[:, kt] =  2 * (b * (Cons4 < 0) * Cons4)[:,kt] @  dc4dX(grid[:, kt], i)
-
     jac4  = (DCons1 + DCons2 + DCons3 + DCons4).reshape(-1)
 
     jac = jac + jac4
@@ -681,91 +662,3 @@ def Jp_a3(gridr, b, us, vs, y, x, i, c1, c2, c3, ct, dxdT, dydT, Ax, Ay, mask=No
 
     return cost , jac
 
-
-
-def Jp2D(grid,b,u,v,y,x,i,c1,c2,c3,dxdT,dydT,Ax,Ay,mask=None):
-    # Penalized cost function Jp with derivative
-    mi = 2**i + 1
-
-    ny = len(y)
-    nx = len(x)
-    yc = np.linspace(0, ny - 1, (2 ** i + 1), dtype=int)
-    xc = np.linspace(0, nx - 1, (2 ** i + 1), dtype=int)
-    xxc, yyc = np.meshgrid(x[xc], y[yc], indexing='ij')
-    yyT = grid[(mi)**2:(mi)**2*2].reshape((mi,mi))
-    xxT = grid[0:(mi)**2].reshape((mi, mi))
-    b1 = b #[0 : (mi-1)**2]
-    b2 = b #[(mi-1)**2 : 2*(mi - 1)**2]
-    b3 = b #[2*(mi-1)**2 : 3*(mi - 1)**2]
-    b4 = b #[3*(mi-1)**2 :  4*(mi - 1)**2]
-
-    v1 = v
-    u1 = mapped(u, y, x, yyT, xxT, i)
-
-    ydif = (yyT-yyc).reshape(-1)
-    xdif = (xxT-xxc).reshape(-1)
-
-    dT = np.zeros(4 * mi ** 2)
-    dT[0:mi ** 2] = Ax @ xdif
-    dT[mi ** 2:2 * mi ** 2] = Ay @ xdif
-    dT[2 * mi ** 2:3 * mi ** 2] = Ax @ ydif
-    dT[3 * mi ** 2:4 * mi ** 2] = Ay @ ydif
-
-    divT = Ax @ xdif + Ay @ ydif
-
-    # Cost
-    if mask is None:
-        Jo = np.sqrt(sum(sum((v1 - u1) ** 2)))
-    else:
-        Jo = np.sqrt(sum(sum(mask * (v1 - u1) ** 2)))
-
-    Jb = c1 /(mi) * np.sqrt(np.dot(ydif, ydif) + np.dot(xdif.T, xdif)) \
-               + c2 /(mi) * np.sqrt(np.dot(dT.T, dT)) \
-               + c3 / (mi) * np.sqrt(np.dot(divT.T, divT))
-    cost = Jo + Jb + (np.dot(b1 * (constr1(grid, i) < 0), constr1(grid, i) ** 2) + np.dot(b2 * (constr2(grid, i) < 0),constr2(grid, i) ** 2)
-                    + np.dot(b3 * (constr3(grid, i) < 0), constr3(grid, i) ** 2) + np.dot(b4 * (constr4(grid, i) < 0),constr4(grid, i) ** 2))
-
-
-    # Derivative
-    u_w, u_x, u_y = mapped_weight(u, y, x, yyT, xxT, i)
-    dx = round(x[1]-x[0],2)
-    dy = round(y[1]-y[0],2)
-
-    if mask is None:
-        #jac = - ((sum(sum((v1 - u1) ** 2))) ** (-1 / 2)) * ((((v1 - u1)).reshape(-1) * (u_y/dy) @ dydT) + (((v1 - u1)).reshape(-1) * (u_x/dx) @ dxdT))
-        jac = - ((np.sum((v1 - u1) ** 2)) ** (-1 / 2)) * (
-                    (((v1 - u1)).reshape(-1) * (u_y / dy) @ dydT) + (((v1 - u1)).reshape(-1) * (u_x / dx) @ dxdT))
-
-    else:
-        jac = - ((sum(sum(mask*(v1 - u1) ** 2))) ** (-1 / 2)) * (((mask*(v1 - u1)).reshape(-1) * (u_y / dy) @ dydT) + ((mask*(v1 - u1)).reshape(-1) * (u_x / dx) @ dxdT))
-
-    if (np.dot(ydif, ydif) + np.dot(xdif.T, xdif)) == 0 or c1 == 0:
-        jac = jac
-    else:
-        jac2 = np.zeros(len(grid))
-        jac2[0:mi ** 2] = xdif
-        jac2[mi ** 2:mi ** 2 * 2] = ydif
-        jac = jac + c1 /(mi)  * ((np.dot(ydif, ydif) + np.dot(xdif.T, xdif)) ** (-1 / 2)) * jac2
-
-    if (np.dot(dT.T, dT)) == 0 or c2 == 0:
-        jac = jac
-    else:
-        jac3 = np.zeros(len(grid))
-        jac3[0:mi ** 2] = Ax.T @ dT[0:mi ** 2] + Ay.T @ dT[mi ** 2:2 * mi ** 2]
-        jac3[mi ** 2:mi ** 2 * 2] = Ax.T @ dT[2 * mi ** 2:3 * mi ** 2] + Ay.T @ dT[3 * mi ** 2:4 * mi ** 2]
-        jac = jac + c2 /(mi)  * (np.dot(dT.T, dT) ** (-1 / 2)) * jac3
-
-    if (np.dot(divT.T,divT)) == 0 or c3 == 0:
-        jac = jac
-    else:
-        jac5 = np.zeros(len(grid))
-        jac5[0:mi ** 2] = (Ax.T @ dT[0:mi ** 2] + Ax.T @ dT[3 * mi ** 2:4 * mi ** 2])
-        jac5[mi ** 2:mi ** 2 * 2] =  (Ay.T @ dT[0:mi ** 2] + Ay.T @ dT[3 * mi ** 2:4 * mi ** 2])
-        jac = jac + c3 / (mi)  * (np.dot(divT.T,divT) ** (-1 / 2)) * jac5
-
-
-    jac4 = 2 * (b1 * (constr1(grid,i) < 0) * constr1(grid,i)) @ dc1dX(grid,i) + 2 * (b2 * (constr2(grid,i) < 0) * constr2(grid,i)) @ dc2dX(grid,i) + 2 * (b3 * (constr3(grid,i) < 0) * constr3(grid,i)) @ dc3dX(grid,i) + 2 * (b4 * (constr4(grid,i) < 0) * constr4(grid,i)) @ dc4dX(grid,i)
-
-    jac = jac + jac4
-
-    return cost, jac

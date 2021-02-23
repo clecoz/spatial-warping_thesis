@@ -1,15 +1,16 @@
 from registration_approach3 import *
 from registration_approach2 import *
 from registration_approach1 import *
+
 from pykrige import OrdinaryKriging
 import pandas as pd
 import numpy as np
 import os
+import matplotlib.pyplot as plt
 import matplotlib.colors as cls
 from matplotlib.colors import ListedColormap
 from itertools import combinations
 import math
-from mpl_toolkits.basemap import Basemap, cm
 
 #=======================================================================================================================
 # Synthetic case
@@ -18,7 +19,7 @@ from mpl_toolkits.basemap import Basemap, cm
 # Choose case
 case = 'case_spacetime'
 
-# Choose experience
+# Choose experiment
 exp = "full"    #"full" or "interpolated"
 
 # Choose where to save results
@@ -29,10 +30,10 @@ if not os.path.exists(folder_result):
 # Choose if you want to plot or compute statistics
 plot = True
 stats = True
-threshold = 20   # in mm/h, used to compute the position and timing error
+threshold = 1   # in mm/h, used to compute the position and timing error
 
 #==================================================================
-# Choose registration parameter
+# Choose registration parameters
 
 # Choose registration approach
 reg = "a2"          # Possible choice: "a1", "a2" and "a3"
@@ -41,7 +42,7 @@ reg = "a2"          # Possible choice: "a1", "a2" and "a3"
 c1 = 0.1
 c2 = 1
 c3 = 1
-c4 = 1
+ct = 1
 c5 = 0.3            # only needed for approach a3
 
 # Choose number of morphing grids
@@ -154,7 +155,7 @@ if reg == "a1":
 elif reg == "a2":
     Tx, Ty = registration_a2(u, v, x, y, I, c1, c2, c3, mask, folder_result, ks)
 elif reg == "a3":
-    Tx, Ty = registration_a3(u, v, x, y, I, c1, c2, c3, c4, mask, Acomb, time_cor, folder_result, ks)
+    Tx, Ty = registration_a3(u, v, x, y, I, c1, c2, c3, ct, mask, Acomb, time_cor, folder_result, ks)
 else:
     print("Error (wrong ""reg""): this approach does not exist.")
 
